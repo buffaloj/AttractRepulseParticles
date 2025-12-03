@@ -1,0 +1,683 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+
+<body>
+  <div id="maincontainer">
+    <div id="canvasdiv">
+      <canvas id=canvas></canvas>
+    </div>
+
+    <div id="checkboxdiv">
+      <input type="button" id="reroll" value="Reroll All"/>
+      <input type="button" id="randompos" value="Random Pos"/>
+      <input type="button" id="circularpos" value="Circular Pos"/>
+    </div>
+  </div>
+
+  <script type="text/javascript"
+    src="https://unpkg.com/canvaskit-wasm@0.19.0/bin/canvaskit.js"></script>
+    
+
+  <script type="text/javascript">
+
+  var showControlChain = true;
+  var gotoRandomPositions = false;
+  var gotoRandomCircularPositions = false;
+  var changeRandomMatrixValue = false;
+  var flipMatrixValues = false;
+  var changeForceValue = false;
+  var changeRadiusValue = false;
+  var rerollScene = false;
+  var isMouseDown = false;
+  var mousePos = { x: 0, y: 0 };
+
+  const ckLoaded = CanvasKitInit({
+    locateFile: (file) => 'https://unpkg.com/canvaskit-wasm@0.19.0/bin/'+file});
+  ckLoaded.then((CanvasKit) => {
+    var surface = CanvasKit.MakeCanvasSurface('canvas');
+
+    const htmlCanvas = document.getElementById('canvas');
+
+    //htmlCanvas.addEventListener('click', function(event) {
+    //   gotoRandomPositions = true;
+       //changeRandomMatrixValue = true;
+       //flipMatrixValues = true;
+      // changeForceValue = true;
+      //changeRadiusValue = true;
+    //});
+
+    
+    htmlCanvas.addEventListener('mousedown', (event) => {
+      isMouseDown = true;
+      // Optional: Store initial mouse position for calculating movement
+      // startX = event.clientX;
+      // startY = event.clientY;
+    });
+
+    document.addEventListener('mouseup', () => {
+      isMouseDown = false;
+    });
+
+    htmlCanvas.addEventListener('mousemove', (event) => {
+      if (isMouseDown) {
+        // Logic to execute when mouse moves while button is down
+        //console.log('Mouse is moving with button down!', event.clientX, event.clientY);
+        // Example: Update element position for dragging
+        // myElement.style.left = event.clientX - startX + 'px';
+        // myElement.style.top = event.clientY - startY + 'px';
+
+        mousePos.x = event.clientX;
+        mousePos.y = event.clientY;
+        
+        // var cursor = particles[0];
+        // cursor.x = event.clientX;
+        // cursor.y = event.clientY;
+      }
+    });
+
+    const rerollButton = document.getElementById('reroll');
+    rerollButton.addEventListener('click', function() {
+        rerollScene = true;
+    });
+
+    const randomposButton = document.getElementById('randompos');
+    randomposButton.addEventListener('click', function() {
+        gotoRandomPositions = true;
+    });
+
+    const randomcircularpoButton = document.getElementById('circularpos');
+    randomcircularpoButton.addEventListener('click', function() {
+        gotoRandomCircularPositions = true;
+    });
+
+
+    const resizeObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      // Access the observed element and its new dimensions
+      const element = entry.target;
+      const newWidth = entry.contentRect.width; // or entry.contentBoxSize[0].inlineSize
+      const newHeight = entry.contentRect.height; // or entry.contentBoxSize[0].inlineSize
+
+      //console.log(`Element ${element.id} width changed to: ${newWidth}px, ${newHeight}px`);
+
+      htmlCanvas.width = entry.contentRect.width;
+      htmlCanvas.height = entry.contentRect.height;
+
+      surface = CanvasKit.MakeCanvasSurface('canvas');
+
+    
+      setupRandomScene();
+    }
+  });
+
+  // Start observing the element
+  resizeObserver.observe(htmlCanvas);
+
+    var particles = [];
+    var colors = [];
+    var colormatrix = [];
+    //var rmin = 75;
+    //var rmax = 400;
+    var dmin = 4.0;//10.0;
+    var damp = 0.5;//0.8;
+    var force = 0.03;//0.6;//0.25;
+    var smax = 1.0;
+
+    var interpolators = [];
+
+    
+    //setupRandomScene();
+
+    function setupRandomScene() {
+      particles = [];
+      colors = [];
+      
+      // mouse cursor position
+      //addParticles(randomPosition, zeroVelocity, () => exact(1), CanvasKit.Color4f(0.0, 0.0, 0.0, 1.0), exactSize(20));
+
+      //red/blue
+      //addParticles(randomPosition, zeroVelocity, () => randomCount(400, 400), CanvasKit.Color4f(0.9, 0.1, 0.1, 1.0), exactSize(5));
+      //addParticles(randomPosition, zeroVelocity, () => randomCount(400, 400), CanvasKit.Color4f(0.1, 0.1, 0.9, 1.0), exactSize(5));
+
+      //  addParticles(() => randomCentered(200), zeroVelocity, () => randomCount(100, 400), CanvasKit.Color4f(0.9, 0.1, 0.1, 1.0), exactSize(5));
+      //  addParticles(() => randomCentered(200), zeroVelocity, () => randomCount(100, 400), CanvasKit.Color4f(0.1, 0.1, 0.9, 1.0), exactSize(5));
+
+      //  addParticles(() => randomCentered(200), zeroVelocity, () => exact(100), CanvasKit.Color4f(0.9, 0.1, 0.1, 1.0), exactSize(5));
+      //  addParticles(() => randomCentered(200), zeroVelocity, () => exact(100), CanvasKit.Color4f(0.1, 0.1, 0.9, 1.0), exactSize(5));
+
+      var pmin = 5;
+      var pmax = 300;
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(0.9, 0.1, 0.1, 1.0), exactSize(5));
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(0.1, 0.1, 0.9, 1.0), exactSize(5));
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(0.1, 0.9, 0.1, 1.0), exactSize(5));
+
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(245/255, 138/255, 24/255, 1.0), exactSize(5));
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(138/255, 14/255, 115/255, 1.0), exactSize(5));
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(10/255, 129/255, 168/255, 1.0), exactSize(5));
+
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(186/255, 201/255, 12/255, 1.0), exactSize(5));
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(186/255, 7/255, 133/255, 1.0), exactSize(5));
+      addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(217/255, 191/255, 26/255, 1.0), exactSize(5));
+
+      // doMultiple(5, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(122/255, 178/255, 250/255, 1.0)));
+      // doMultiple(5, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(99/255, 21/255, 107/255, 1.0)));
+      // doMultiple(5, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(204/255, 8/255, 96/255, 1.0)));
+
+      // doMultiple(5, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(2/255, 61/255, 6/255, 1.0)));
+
+      // Rainbow //
+      // doMultiple(2, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(224/255, 31/255, 17/255, 1.0), exactSize(5)));//randomSizeInRange(1, 10)));
+      // doMultiple(2, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(247/255, 99/255, 4/255, 1.0), exactSize(5)));//randomSizeInRange(2, 3)));
+      // doMultiple(2, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(250/255, 231/255, 33/255, 1.0), exactSize(5)));//randomSizeInRange(5, 5)));
+      // doMultiple(2, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(47/255, 143/255, 3/255, 1.0), exactSize(5)));//randomSizeInRange(6, 7)));
+      // doMultiple(2, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(6/255, 76/255, 214/255, 1.0), exactSize(5)));//randomSizeInRange(8, 8)));
+      // doMultiple(2, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(72/255, 16/255, 171/255, 1.0), exactSize(5)));//randomSizeInRange(3, 10)));
+      // doMultiple(1, () => addParticles(randomPosition, zeroVelocity, () => randomCount(pmin, pmax), CanvasKit.Color4f(132/255, 8/255, 179/255, 1.0), exactSize(5)));//randomSizeInRange(1, 10)));
+      
+      //var numparticles = 100;
+      // addParticles(randomPosition, zeroVelocity, () => exact(numparticles), CanvasKit.Color4f(224/255, 31/255, 17/255, 1.0), randomSizeInRange(5, 5));
+      // addParticles(randomPosition, zeroVelocity, () => exact(numparticles), CanvasKit.Color4f(247/255, 99/255, 4/255, 1.0), randomSizeInRange(5, 5));
+      // addParticles(randomPosition, zeroVelocity, () => exact(numparticles), CanvasKit.Color4f(250/255, 231/255, 33/255, 1.0), randomSizeInRange(5, 5));
+      // addParticles(randomPosition, zeroVelocity, () => exact(numparticles), CanvasKit.Color4f(47/255, 143/255, 3/255, 1.0), randomSizeInRange(5, 5));
+
+      // addParticles(randomPosition, zeroVelocity, () => exact(numparticles), CanvasKit.Color4f(6/255, 76/255, 214/255, 1.0), randomSizeInRange(5, 5));
+      // addParticles(randomPosition, zeroVelocity, () => exact(numparticles), CanvasKit.Color4f(72/255, 16/255, 171/255, 1.0), randomSizeInRange(5, 5));
+      // addParticles(randomPosition, zeroVelocity, () => exact(numparticles), CanvasKit.Color4f(132/255, 8/255, 179/255, 1.0), randomSizeInRange(5, 5));
+
+      //addParticles(() => randomCentered(50), zeroVelocity, () => exact(2), CanvasKit.Color4f(0.9, 0.1, 0.1, 1.0));
+      //addParticles(randomPosition, zeroVelocity, () => exact(100), CanvasKit.Color4f(0.1, 0.1, 0.9, 1.0));
+      
+      buildColorMatrix((color1, color2, current) => {
+        //  var nextVal = fullAttr(color1, color2, current);
+        //  return identityAttr(color1, color2, nextVal);
+
+        var nextVal = randomAttractRepulse(color1, color2, current);
+        return identityAttr(color1, color2, nextVal);
+
+        //var nextVal = zeroAttr(color1, color2, current);
+        //return identityAttr(color1, color2, nextVal);
+
+        //return wormAttr(color1, color2, current);
+
+        //return zeroAttr(color1, color2, current);
+      },
+      //randomRange(50, 50, 500,500));
+      randomRange(5, 120, 300, 500));
+
+      //console.log(colormatrix);
+
+      function exact(count) {
+        return count;
+      }
+
+      function randomCount(min, max) {
+        return min + (Math.random() * (max - min));
+      }
+
+      function doMultiple(count, func) {
+          for (var i = 0; i < count; i++)
+            func();
+      }
+    }
+
+    function wormAttr(color1, color2, current) {
+      if (color1 == color2) 
+         return 1.0;
+      
+      if (color1 == color2-1 || (color2 == 0 && color1 == colors.length - 1))
+          return 0.1;
+        
+      return 0.0;
+          
+    }
+
+    function interpolate(value1, value2, tween) {
+        return value1 + (value2-value2)*tween;
+    }
+
+    function zeroAttr(color1, color2, current){
+        return 0.0;
+    }
+
+    function fullAttr(color1, color2, current){
+        return 1.0;
+    }
+
+    function fullRepulsion(color1, color2, current){
+        return -1.0;
+    }
+
+    function randomAttractRepulse(color1, color2, current){
+        return (Math.random() - 0.5) * 2.0;
+    }
+
+    function clampedAttractRepulse(color1, color2, current, maxPercentage){
+        return (Math.random() - 0.5) * 2.0 * maxPercentage;
+    }
+
+    function randomRepulsion(color1, color2, current){
+        return -Math.random();
+    }
+
+    function identityAttr(color1, color2, current){
+      if (color1 == color2) {
+        return 1.0;
+      } else {
+        return current;
+      }
+    }
+
+    function buildColorMatrix(strengthFactory, rfactory) {
+      const numColors = colors.length;
+      colormatrix = new Array(numColors);
+      for (let i = 0; i < numColors; i++) {
+        colormatrix[i] = new Array(numColors);
+        for (let j = 0; j < numColors; j++) {
+          let r = rfactory(i,j);
+          colormatrix[i][j] = { strength: strengthFactory(i, j, 0.0), rmin: r.rmin, rmax: r.rmax };
+        }
+      }
+     // console.log(colormatrix);
+    }
+
+    const exactSize = (size) => () => {
+      return size;
+    }
+
+    const randomSizeInRange = (sizemin, sizemax) => () => {
+      return sizemin + ((sizemax - sizemin) * Math.random());
+    }
+
+    const randomRange = (rmin1, rmin2, rmax1, rmax2) => () => {
+      var some = { rmin: rmin1 + Math.random()*(rmin2 - rmin1), rmax: rmax1 + Math.random() * (rmax2 - rmax1)};;
+      //console.log(some);
+      return some;
+      //return { rmin: Math.random()*(rmin2 - rmin1), rmax: Math.random() * (rmax2 - rmax1)};
+    }
+
+    function addColor(color) {
+      const paint = new CanvasKit.Paint();
+      paint.setColor(color);
+      paint.setAntiAlias(true);
+
+      colors.push({ paint: paint });
+      return colors.length - 1;
+    }
+
+    function randomPosition() {
+      return { x: Math.random() * htmlCanvas.width, y: Math.random() * htmlCanvas.height };
+    }
+
+    function randomPosInRect(centerx, centery, width, height) {
+      return { x: ((Math.random() - 0.5) * 2 * width) + centerx, y: ((Math.random() - 0.5) * 2 * height) + centery };
+    }
+
+    function randomPosInSphere (centerx, centery, radius) {
+      var angle = Math.random() * Math.PI*2.0;
+      var dx = Math.cos(angle);
+      var dy = Math.sin(angle);
+      radius *= Math.random();
+      return { x: centerx + dx*radius, y: centery+dy*radius };
+    }
+
+    function randomCentered(radius) {
+      return { x: (Math.random()*radius) + (htmlCanvas.width/2), y: (Math.random()*radius) +(htmlCanvas.height/2) };
+    }
+
+    function zeroVelocity() {
+      return { x: 0.0, y: 0.0 };
+    }
+
+    function randomVelocity() {
+      return { x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2 };
+    }
+
+    function addParticles(posFactory, velFactory, countFactory, color, sizefactory) {
+      const index = addColor(color);
+      const count = countFactory();
+      for (let i = 0; i < count; i++) {
+        var pos = posFactory();
+        var vel = velFactory();
+        var size = sizefactory();
+        
+        particles.push({x: pos.x, y: pos.y, velx: vel.x, vely: vel.y, color: index, size: size});
+      }
+    }
+
+    function attractionStrength(color1, color2, dist) {
+        let val = colormatrix[color1][color2];
+        return attraction(val.rmin, val.rmax, val.strength, dist);
+    }
+
+    function attraction(rmin, rmax, strength, dist) {
+        if (dist >= rmax) {
+          return 0.0;
+        }
+
+        if (dist <= rmin) {
+          var some = (dist/rmin)-1.0;
+          return (dist/rmin)-1.0;
+        }
+
+        var half = (rmax - rmin) / 2.0;
+        dist -= rmin + half;
+        const distStrength = 1.0 - Math.abs(dist / half);
+
+        return strength * distStrength;
+    }
+
+    function computeForces() {
+      for (let i = 0; i < particles.length; i++) {
+        let p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          let p2 = particles[j];
+
+          let dx = p2.x - p1.x;
+          let dy = p2.y - p1.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+
+          let strength = attractionStrength(p1.color, p2.color, dist);
+          if (strength != 0.0 && dist != 0.0) {
+            
+
+            let forceX = (dx / dist) * strength * force;
+            let forceY = (dy / dist) * strength * force;
+
+            //console.log("str: " + strength + " fouce: " + force + " dist: " + dist + " forcex: " + forceX);
+
+            p1.velx += forceX;
+            p1.vely += forceY;
+            p2.velx -= forceX;
+            p2.vely -= forceY;
+          }
+        }
+      }
+    }    
+
+    function computeMouseForces() {
+
+      if (!isMouseDown)
+        return;
+
+      for (let i = 0; i < particles.length; i++) {
+        let p = particles[i];
+        //for (let j = i + 1; j < particles.length; j++) {
+        //  let p2 = particles[j];
+
+          let dx = mousePos.x - p.x;
+          let dy = mousePos.y - p.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+
+          let strength = attraction(20, 200, -100.0, dist);
+          if (strength != 0.0 && dist != 0.0) {
+            
+
+            let forceX = (dx / dist) * strength * force;
+            let forceY = (dy / dist) * strength * force;
+
+            //console.log("str: " + strength + " fouce: " + force + " dist: " + dist + " forcex: " + forceX);
+
+            p.velx += forceX;
+            p.vely += forceY;
+            //p2.velx -= forceX;
+            //p2.vely -= forceY;
+          }
+        //}
+      }
+    }    
+
+    function dampenVelocity(particle, factor) {
+        let speed = Math.sqrt(particle.velx * particle.velx + particle.vely * particle.vely);
+        if (speed == 0.0)
+          return;
+
+        let shift = speed - dmin;
+        if (shift < 0.0)
+          shift = 0.0;
+
+        let vx = (particle.velx/speed) * shift;
+        let vy = (particle.vely/speed) * shift;
+
+        particle.velx -= vx * factor;
+        particle.vely -= vy * factor;
+    }
+
+    function limitVelocities() {
+      particles.forEach(particle => {
+        let speed = Math.sqrt(particle.velx * particle.velx + particle.vely * particle.vely);
+        if (speed == 0.0)
+          return;
+
+        if (speed > smax) {
+          particle.velx = (particle.velx/speed)*smax;
+          particle.vely = (particle.vely/speed)*smax;
+        }
+      });
+    }
+
+    function updateParticles() {
+      particles.forEach(particle => {
+        particle.x += particle.velx;
+        particle.y += particle.vely;
+
+       // console.log("particle.x: " + particle.x)
+
+        if (particle.x < 0 || particle.x > htmlCanvas.width) {
+          particle.velx = -particle.velx*1.5;
+        }
+        if (particle.y < 0 || particle.y > htmlCanvas.height) {
+          particle.vely = -particle.vely*1.5;
+        }
+
+        dampenVelocity(particle, damp);
+      });
+    }
+
+    function addInterpolator(interpolator, tweener) {
+        interpolators.push({ interpolate: interpolator, getTween: tweener });
+    }
+
+    function stepInterpolators() {
+      for (var i = 0; i < interpolators.length; ) {
+        let interpolator = interpolators[i];
+        let tween = interpolator.getTween();
+        interpolator.interpolate(tween);
+
+        if (tween >= 1.0) {
+            interpolators[i] = interpolators[interpolators.length-1];
+            interpolators.pop();
+        }
+        else
+          i++;
+      };
+    }
+
+    const timeTween = (starttime, endtime, timefactory) => () => {
+      let now = timefactory();
+      if (now >= endtime)
+        return 1.0;
+
+      if (now <= starttime)
+        return 0.0;
+
+      return (now - starttime) / (endtime - starttime);
+    }
+
+    const particlePosition = (p, pos) => (tween) => {
+        let dx = pos.x - p.x;
+        let dy = pos.y - p.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+
+        tween = 1.0 - tween;
+        p.x = pos.x - dx*tween;
+        p.y = pos.y - dy*tween;
+    }
+
+    const particleVelocity = (p, vel) => (tween) => {
+        let dx = vel.x - p.velx;
+        let dy = vel.y - p.vely;
+        //let dist = Math.sqrt(dx * dx + dy * dy);
+
+        tween = 1.0 - tween;
+        p.velx = vel.x - dx*tween;
+        p.vely = vel.y - dy*tween;
+    }
+
+    const particleRange = (p, rmin, rmax) => (tween) => {
+        let drmin = rmin - p.rmin;
+        let drmax = rmax - p.rmax;
+        //let dist = Math.sqrt(dx * dx + dy * dy);
+
+        tween = 1.0 - tween;
+        p.rmin = vel.x - drmin*tween;
+        p.rmax = vel.y - drmax*tween;
+    }
+    
+
+    const colorMatrixStrength = (color1, color2, start, end) => (tween) => {
+        colormatrix[color1][color2].strength = (end - start) * tween;
+    }
+
+    const colorMatrixRMin = (color1, color2, rstart, rend) => (tween) => {
+        colormatrix[color1][color2].rmin = (rend - rstart) * tween;
+    }
+
+    const colorMatrixRMax = (color1, color2, rstart, rend) => (tween) => {
+        colormatrix[color1][color2].rmax = (rend - rstart) * tween;
+    }
+
+    function draw(canvas) {
+      let now = performance.now();
+      
+      canvas.clear(CanvasKit.WHITE);
+
+      stepInterpolators();
+      computeForces();
+      computeMouseForces();
+      //limitVelocities();
+      updateParticles();
+      
+
+      particles.forEach(particle => {
+        canvas.drawCircle(particle.x, particle.y, particle.size, colors[particle.color].paint);
+      });
+
+      surface.requestAnimationFrame(draw);
+
+      if (flipMatrixValues){
+        flipMatrixValues = false;
+
+        for(var j = 0; j < colors.length; j++)
+          for(var i = 0; i < colors.length; i++)
+          {
+            colormatrix[i][j].strength = -colormatrix[i][j].strength;
+            
+          }
+      }
+
+      if (changeRandomMatrixValue){
+        changeRandomMatrixValue = false;
+
+        let color1 = Math.floor(Math.random() * colors.length);
+        let color2 = Math.floor(Math.random() * colors.length);
+        //colormatrix[index1][index2] = (Math.random() - 0.5) * 2.0;
+
+        // for(var j = 0; j < colors.length; j++)
+        //   for(var i = 0; i < colors.length; i++)
+        //   {
+        //     var nextVal = randomAttractRepulse(i, j, colormatrix[i][j].strength);
+        //     addInterpolator(colorMatrixStrength(i, j, colormatrix[i][j].strength, nextVal), timeTween(now, now + 250, () => performance.now()));    
+        //   }
+        
+
+        // buildColorMatrix((color1, color2, current) => {
+        //   var nextVal = randomAttractRepulse(color1, color2, current);
+        //   return identityAttr(color1, color2, nextVal);
+        // });
+
+        buildColorMatrix((color1, color2, current) => {
+          //  var nextVal = fullAttr(color1, color2, current);
+          //  return identityAttr(color1, color2, nextVal);
+
+          var nextVal = clampedAttractRepulse(color1, color2, current, 0.5);
+          return identityAttr(color1, color2, nextVal);
+
+          //return wormAttr(color1, color2, current);
+
+          //return zeroAttr(color1, color2, current);
+        },
+        //randomRange(50, 50, 500,500));
+        randomRange(100, 150, 400, 500));
+        
+      }
+
+      if (rerollScene) {
+        rerollScene = false;
+        setupRandomScene();
+      }
+
+      if (gotoRandomCircularPositions) {
+        gotoRandomCircularPositions = false;
+
+        let transitiontime = 1500;
+        particles.forEach(particle => {
+          addInterpolator(particlePosition(particle, randomPosInSphere(htmlCanvas.width/2.0, htmlCanvas.height/2.0, 300)), timeTween(now, now + transitiontime, () => performance.now()));
+          addInterpolator(particleVelocity(particle, zeroVelocity()), timeTween(now, now + transitiontime, () => performance.now()));
+        });
+      }
+      
+      if (gotoRandomPositions) {
+        gotoRandomPositions = false;
+
+        let transitiontime = 1500;
+        particles.forEach(particle => {
+          
+      //addInterpolator(particlePosition(particle, randomPosInSphere(htmlCanvas.width/2.0, htmlCanvas.height/2.0, 300)), timeTween(now, now + transitiontime, () => performance.now()));
+          //addInterpolator(particlePosition(particle, randomPosInRect(htmlCanvas.width/2.0, htmlCanvas.height/2.0, 300, 250)), timeTween(now, now + transitiontime, () => performance.now()));
+
+         // addInterpolator(particlePosition(particle, randomCentered(500)), timeTween(now, now + transitiontime, () => performance.now()));
+          addInterpolator(particlePosition(particle, randomPosition()), timeTween(now, now + transitiontime, () => performance.now()));
+          addInterpolator(particleVelocity(particle, zeroVelocity()), timeTween(now, now + transitiontime, () => performance.now()));
+        });
+      }
+
+      
+      if (changeRadiusValue) {
+        changeRadiusValue = false;
+
+        //rmin =  2.0 + Math.random()*100;
+        //rmax =  rmin + Math.random()*800;
+
+        for(var j = 0; j < colors.length; j++)
+          for(var i = 0; i < colors.length; i++)
+          {
+            var nextVal = randomRange(2, 200, 300, 500);
+            addInterpolator(colorMatrixRMin(i, j, colormatrix[i][j].rmin, nextVal.rmin), timeTween(now, now + 250, () => performance.now()));    
+            addInterpolator(colorMatrixRMax(i, j, colormatrix[i][j].rmax, nextVal.rmax), timeTween(now, now + 250, () => performance.now()));    
+          }
+          
+        
+        //addInterpolator(particleRange(particle, particleRanges), timeTween(now, now + transitiontime, () => performance.now()));
+      }
+
+      if (changeForceValue) {
+        changeForceValue = false;
+        let tween = Math.random();
+        force = 0.0001 + tween*(0.1-0.0001);
+        damp = .3 + (tween*(1.0-.3));
+        //console.log("force: " + force + "damp: " + damp);
+      }
+    }
+
+    surface.requestAnimationFrame(draw);
+
+  });
+    
+</script>
+</body>
+</html>
