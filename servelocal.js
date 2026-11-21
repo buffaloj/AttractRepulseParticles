@@ -2,9 +2,11 @@ const express = require('express')
 const app = express()
 const path = require('path'); // Import the path module
 
+var port = process.env.PORT || 5000;
+ 
 // This tells the app which port to listen to
-app.listen(process.env.PORT || 5000, () => {
-  console.log(`Server is running on port`)
+app.listen(port, () => {
+  console.log(`Server is running on port ` + port)
 })
 
 //This shows the response that will sent to the user

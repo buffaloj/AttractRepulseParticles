@@ -42,6 +42,7 @@
     var surface = CanvasKit.MakeCanvasSurface('canvas');
 
     const htmlCanvas = document.getElementById('canvas');
+    const canvasdiv = document.getElementById('canvas');
 
     //htmlCanvas.addEventListener('click', function(event) {
     //   gotoRandomPositions = true;
@@ -52,7 +53,7 @@
     //});
 
     
-    htmlCanvas.addEventListener('mousedown', (event) => {
+    canvasdiv.addEventListener('mousedown', (event) => {
       isMouseDown = true;
       // Optional: Store initial mouse position for calculating movement
       // startX = event.clientX;
@@ -63,7 +64,7 @@
       isMouseDown = false;
     });
 
-    htmlCanvas.addEventListener('mousemove', (event) => {
+    canvasdiv.addEventListener('mousemove', (event) => {
       if (isMouseDown) {
         // Logic to execute when mouse moves while button is down
         //console.log('Mouse is moving with button down!', event.clientX, event.clientY);
